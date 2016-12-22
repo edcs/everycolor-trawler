@@ -2,8 +2,13 @@
   "name": "everycolor-trawler",
   "version": "1.0.0",
   "description": "Trawls @everycolorbot on Twitter and figures out everyone's favourite colors",
-  "main": "index.js",
+  "main": "trawl.js",
   "repository": "https://github.com/edcs/everycolor-trawler",
   "author": "Edward Coleridge Smith",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "cli": "^1.0.1",
+    "dotenv": "^2.0.0",
+    "twitter": "^1.7.0"
+  }
 }
