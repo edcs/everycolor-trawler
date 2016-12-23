@@ -47,10 +47,15 @@ const parseTweetCollection = (tweets) => {
     let collection = [];
 
     for (const tweet of tweets) {
+        let color = tweet.text.split(' ')[0].replace('0x', '#');
+        let interactions = tweet.favorite_count + tweet.retweet_count;
+
+        cli.debug(`Color: ${color}, Interactions: ${interactions}`);
+
         collection.push({
             id: tweet.id_str,
-            color: tweet.text.split(' ')[0].replace('0x', '#'),
-            interactions: tweet.favorite_count + tweet.retweet_count,
+            color: color,
+            interactions: interactions,
         });
     }
 
@@ -72,21 +77,26 @@ synchronousPromiseHandler(function* () {
     let collection = [];
 
     try {
-        for (let i = 0; i < 250; i++) {
+        cli.info(`Trawling @${username}'s Tweets`);
+
+        for (let i = 0; i < 100; i++) {
             collection = collection.concat(parseTweetCollection(yield client.get('statuses/user_timeline', params)));
             params.max_id = collection[collection.length - 1].id;
 
             cli.progress(i / 100)
         }
 
-        cli.progress(1);
+        cli.progress(1)
+    } catch (err) {
+        cli.error(err[0].message);
+    } finally {
+        cli.info(`Trawling complete - ${collection.length} Tweets found`);
+        cli.info(`Saving Tweets to: ${__dirname}/dist/colors.json`);
 
         // Use outputFile instead of outputJson so that we get a minified file.
-        fs.outputFile(
+        fs.outputFileSync(
             `${__dirname}/dist/colors.json`,
             JSON.stringify(_.sortBy(collection, 'interactions').reverse())
         );
-    } catch (err) {
-        console.log(err.message);
     }
 });
