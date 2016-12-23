@@ -4,6 +4,11 @@ require('dotenv').config();
 const cli = require('cli');
 const Twitter = require('twitter');
 
+/**
+ * Creates a new instance of the Twitter client.
+ *
+ * @type {Twitter}
+ */
 const client = new Twitter({
     consumer_key: process.env.TWITTER_API_KEY,
     consumer_secret: process.env.TWITTER_API_SECRET,
@@ -11,41 +16,68 @@ const client = new Twitter({
     access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
 });
 
-let colors = {};
+/**
+ * Synchronously handles an asynchronous promise.
+ *
+ * @param {function} fn
+ */
+const synchronousPromiseHandler = fn => {
+    let iterator = fn();
+    let loop = result => {
+        !result.done && result.value.then(
+            res => loop(iterator.next(res)),
+            err => loop(iterator.throw(err))
+        );
+    };
 
-client.get('statuses/user_timeline', {
-    screen_name: 'everycolorbot',
-    count: 1,
-    trim_user: true,
-    exclude_replies: true,
-    include_rts: false
-}).then((tweets) => {
-    // Retrieve the first Tweet on the timeline so we have it's ID for the next query.
-    colors[tweets[0].id_str] = {};
-}).then(() => {
-    // Loop through the rest of the Tweets now we have an ID start point.
-    for (let i = 0; i <= 100; i++) {
-        client.get('statuses/user_timeline', {
-            screen_name: 'everycolorbot',
-            count: 200,
-            trim_user: true,
-            exclude_replies: true,
-            include_rts: false,
-            min_id: Object.keys(colors)[0],
-            max_id: Object.keys(colors)[Object.keys(colors).length - 1],
-        }).then((tweets) => {
-            for (const tweet of tweets) {
-                colors[tweet.id_str] = {
-                    color: tweet.text.split(' ')[0].replace('0x', '#'),
-                    interactions: tweet.favorite_count + tweet.retweet_count,
-                };
-            }
-        }).then(() => {
-            if (i === 100) {
-                console.log(colors, Object.keys(colors).length);
-            }
+    loop(iterator.next());
+};
+
+/**
+ * Parses a collection of Tweets into a friendly array.
+ *
+ * @param {Array} tweets
+ * @returns {Array}
+ */
+const parseTweetCollection = (tweets) => {
+    let collection = [];
+
+    for (const tweet of tweets) {
+        collection.push({
+            id: tweet.id_str,
+            color: tweet.text.split(' ')[0].replace('0x', '#'),
+            interactions: tweet.favorite_count + tweet.retweet_count,
         });
     }
-}).catch((error) => {
-    console.log(error);
+
+    return collection;
+};
+
+/**
+ * Parses through all available Tweets and stores the results.
+ */
+synchronousPromiseHandler(function* () {
+    let params = {
+        count: 200,
+        trim_user: true,
+        include_rts: false,
+        exclude_replies: true,
+        screen_name: 'everycolorbot',
+    };
+
+    let collection = [];
+
+    try {
+        for (let i = 0; i < 100; i++) {
+            collection = parseTweetCollection(yield client.get('statuses/user_timeline', params));
+            params.max_id = collection[collection.length - 1].id;
+
+            cli.progress(i / 100)
+        }
+
+        cli.progress(1);
+        console.log(collection);
+    } catch (err) {
+        console.log(err.message);
+    }
 });
