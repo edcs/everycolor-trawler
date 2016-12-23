@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 require('dotenv').config();
 
+const _ = require('lodash');
+const fs = require('fs-extra');
 const cli = require('cli');
 const Twitter = require('twitter');
+
+const username = 'everycolorbot';
 
 /**
  * Creates a new instance of the Twitter client.
@@ -19,10 +23,10 @@ const client = new Twitter({
 /**
  * Synchronously handles an asynchronous promise.
  *
- * @param {function} fn
+ * @param {function} promise
  */
-const synchronousPromiseHandler = fn => {
-    let iterator = fn();
+const synchronousPromiseHandler = promise => {
+    let iterator = promise();
     let loop = result => {
         !result.done && result.value.then(
             res => loop(iterator.next(res)),
@@ -54,7 +58,7 @@ const parseTweetCollection = (tweets) => {
 };
 
 /**
- * Parses through all available Tweets and stores the results.
+ * Parses through all available Tweets and stores the results in a JSON file.
  */
 synchronousPromiseHandler(function* () {
     let params = {
@@ -62,21 +66,26 @@ synchronousPromiseHandler(function* () {
         trim_user: true,
         include_rts: false,
         exclude_replies: true,
-        screen_name: 'everycolorbot',
+        screen_name: username,
     };
 
     let collection = [];
 
     try {
-        for (let i = 0; i < 100; i++) {
-            collection = parseTweetCollection(yield client.get('statuses/user_timeline', params));
+        for (let i = 0; i < 250; i++) {
+            collection = collection.concat(parseTweetCollection(yield client.get('statuses/user_timeline', params)));
             params.max_id = collection[collection.length - 1].id;
 
             cli.progress(i / 100)
         }
 
         cli.progress(1);
-        console.log(collection);
+
+        // Use outputFile instead of outputJson so that we get a minified file.
+        fs.outputFile(
+            `${__dirname}/dist/colors.json`,
+            JSON.stringify(_.sortBy(collection, 'interactions').reverse())
+        );
     } catch (err) {
         console.log(err.message);
     }
