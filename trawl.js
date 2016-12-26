@@ -47,15 +47,10 @@ const parseTweetCollection = (tweets) => {
     let collection = [];
 
     for (const tweet of tweets) {
-        let color = tweet.text.split(' ')[0].replace('0x', '#');
-        let interactions = tweet.favorite_count + tweet.retweet_count;
-
-        cli.debug(`Color: ${color}, Interactions: ${interactions}`);
-
         collection.push({
             id: tweet.id_str,
-            color: color,
-            interactions: interactions,
+            color: tweet.text.split(' ')[0].replace('0x', '#'),
+            interactions: tweet.favorite_count + tweet.retweet_count,
         });
     }
 
@@ -90,6 +85,8 @@ synchronousPromiseHandler(function* () {
     } catch (err) {
         cli.error(err[0].message);
     } finally {
+        collection = _.uniqBy(collection, 'id');
+
         cli.info(`Trawling complete - ${collection.length} Tweets found`);
         cli.info(`Saving Tweets to: ${__dirname}/dist/colors.json`);
 
