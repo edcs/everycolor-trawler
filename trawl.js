@@ -23,10 +23,10 @@ const client = new Twitter({
 /**
  * Synchronously handles an asynchronous promise.
  *
- * @param {function} promise
+ * @param {function} generator
  */
-const synchronousPromiseHandler = promise => {
-    let iterator = promise();
+const synchronousPromiseHandler = generator => {
+    let iterator = generator();
     let loop = result => {
         !result.done && result.value.then(
             res => loop(iterator.next(res)),
@@ -50,6 +50,8 @@ const parseTweetCollection = (tweets) => {
         collection.push({
             id: tweet.id_str,
             color: tweet.text.split(' ')[0].replace('0x', '#'),
+            retweets: tweet.retweet_count,
+            favourites: tweet.favorite_count,
             interactions: tweet.favorite_count + tweet.retweet_count,
         });
     }
@@ -85,15 +87,14 @@ synchronousPromiseHandler(function* () {
     } catch (err) {
         cli.error(err[0].message);
     } finally {
+        const dir = process.env.OUTPUT_DIR || `${__dirname}/dist/colors.json`;
+
         collection = _.uniqBy(collection, 'id');
 
-        cli.info(`Trawling complete - ${collection.length} Tweets found`);
-        cli.info(`Saving Tweets to: ${__dirname}/dist/colors.json`);
+        cli.info(`Trawling complete: ${collection.length} Tweets found`);
+        cli.info(`Saving Tweets to: ${dir}`);
 
         // Use outputFile instead of outputJson so that we get a minified file.
-        fs.outputFileSync(
-            `${__dirname}/dist/colors.json`,
-            JSON.stringify(_.sortBy(collection, 'interactions').reverse())
-        );
+        fs.outputFileSync(dir, JSON.stringify(_.sortBy(collection, 'interactions').reverse()));
     }
 });
