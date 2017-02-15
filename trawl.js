@@ -87,7 +87,7 @@ synchronousPromiseHandler(function* () {
     } catch (err) {
         cli.error(err[0].message);
     } finally {
-        const dir = process.env.OUTPUT_DIR || `${__dirname}/dist/colors.json`;
+        const dir = process.env.COLOR_OUTPUT_DIR || `${__dirname}/dist/colors.json`;
 
         collection = _.uniqBy(collection, 'id');
 
