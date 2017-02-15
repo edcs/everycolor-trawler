@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 try {
     require('dotenv').config();
-} catch {
+} catch(e) {
     console.warn('No dotenv configuration found');
 }
 
