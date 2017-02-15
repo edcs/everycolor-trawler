@@ -1,5 +1,9 @@
 #!/usr/bin/env node
-require('dotenv').config();
+try {
+    require('dotenv').config();
+} catch {
+    console.warn('No dotenv configuration found');
+}
 
 const _ = require('lodash');
 const fs = require('fs-extra');
